@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Auth System
 
-## Getting Started
+Secure authentication with separate user and admin dashboards. Built with Next.js, TypeScript, Tailwind CSS and MySQL.
 
-First, run the development server:
+![Auth System home page](public/screenshots/home.png)
+
+## Features
+
+- User and admin registration and login
+- bcrypt password hashing, short-lived JWT access tokens, rotating HttpOnly refresh cookies
+- `/dashboard` for users; `/admin` for admins to create, edit and delete users
+- Server-side role checks, CSRF origin checks, rate limiting, security headers
+
+## Quick start
+
+```bash
+git clone https://github.com/<sunkimsrun>/auth-system.git
+cd auth-system
+npm install
+```
+
+1. In MySQL Workbench, set a strong password in `db/schema.sql` (replace `CHANGE_ME_BEFORE_RUNNING`), then run it and `db/002_notes.sql` with an admin connection.
+2. Copy `.env.example` to `.env.local` and fill it in (`DB_PASSWORD` must match step 1; `JWT_SECRET` needs 32+ random characters).
+3. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Purpose |
+|---|---|
+| `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` | MySQL connection |
+| `JWT_SECRET` | 32+ random characters |
+| `APP_ORIGIN` | Public site origin, used for CSRF checks |
+| `ADMIN_INVITE_CODE` | 20+ characters enables `/admin/register`; empty disables it |
+| `TRUST_PROXY` | `true` only behind a trusted proxy |
 
-## Learn More
+See `.env.example` for the rest.
 
-To learn more about Next.js, take a look at the following resources:
+## Pages
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Route | Access |
+|---|---|
+| `/register`, `/login` | Public |
+| `/dashboard` | User |
+| `/admin/register` | Invite code |
+| `/admin/login` | Public |
+| `/admin` | Admin |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API
 
-## Deploy on Vercel
+Send `Authorization: Bearer <accessToken>` on protected routes. Login also needs an `Origin: http://localhost:3000` header when called from tools like Postman.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Method | Endpoint | Access |
+|---|---|---|
+| POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public |
+| POST | `/api/auth/refresh` | Refresh cookie |
+| POST | `/api/auth/logout` | Refresh cookie |
+| GET | `/api/me` | User |
+| GET, POST | `/api/admin/users` | Admin |
+| PATCH, DELETE | `/api/admin/users/:id` | Admin |
+| POST | `/api/admin/register` | Invite code |
+| GET, POST | `/api/notes` | User |
+| GET, PATCH, DELETE | `/api/notes/:id` | Owner |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Admin account
+
+Register at `/admin/register` with the invite code, or promote a user in Workbench:
+
+```sql
+UPDATE users SET role = 'ADMIN' WHERE email = 'you@example.com';
+```
+
+## Tests
+
+```bash
+npm run build
+TRUST_PROXY=true npm start -- -p 3001   # PowerShell: $env:TRUST_PROXY="true"; npm start -- -p 3001
+npm test                                  # second terminal
+```
+
+## Production notes
+
+- Use HTTPS and set `APP_ORIGIN` to the `https://` URL.
+- Keep secrets in the host's secret store, and the app on the least-privilege `auth_app` database account.
+- The rate limiter is in memory; use Redis if you run more than one instance.
