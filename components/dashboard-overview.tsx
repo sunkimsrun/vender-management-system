@@ -7,7 +7,7 @@ export function DashboardOverview() {
 
   return (
     <section className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">User account</h1>
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="text-sm font-medium text-zinc-500">Your account</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-3">

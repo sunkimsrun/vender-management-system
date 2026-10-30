@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   }
 }
 
-// Creates a USER account; the role is fixed server-side.
+// Creates a USER or STAFF account (default USER); ADMIN can never be assigned here.
 export async function POST(request: Request) {
   try {
     const admin = await requireAuth(request);
@@ -31,12 +31,12 @@ export async function POST(request: Request) {
 
     const parsed = adminCreateUserSchema.safeParse(await readJsonBody(request));
     if (!parsed.success) return validationError(parsed.error);
-    const { email, password } = parsed.data;
+    const { email, password, role } = parsed.data;
 
     if (await emailExists(email)) throw new HttpError("CONFLICT", "That email is already in use");
     const passwordHash = await hashPassword(password);
     try {
-      return jsonOk({ user: await createUser(email, passwordHash) }, 201);
+      return jsonOk({ user: await createUser(email, passwordHash, role) }, 201);
     } catch (error) {
       if (isDuplicateEntryError(error)) throw new HttpError("CONFLICT", "That email is already in use");
       throw error;

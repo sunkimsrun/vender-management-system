@@ -1,13 +1,13 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
 import { hashPassword } from "@/lib/auth/password";
-import { getAdminInviteCode } from "@/lib/env";
+import { getAdminInviteCode, getStaffInviteCode } from "@/lib/env";
 import { assertSameOrigin } from "@/lib/http/csrf";
 import { HttpError } from "@/lib/http/errors";
 import { logServerError } from "@/lib/http/log";
 import { jsonError, jsonOk, validationError } from "@/lib/http/responses";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
-import { createAdminUser, emailExists, isDuplicateEntryError } from "@/lib/users";
+import { createAdminUser, createUser, emailExists, isDuplicateEntryError } from "@/lib/users";
 import { adminRegisterSchema } from "@/lib/validation/auth";
 
 const MAX_BODY_BYTES = 4 * 1024;
@@ -49,17 +49,22 @@ export async function POST(request: Request) {
     if (!parsed.success) return validationError(parsed.error);
     const { email, password, inviteCode } = parsed.data;
 
-    // Disabled, wrong code, and duplicate email all look the same to the caller.
-    const expected = getAdminInviteCode();
+    // The code picks the role. Disabled, wrong code, and duplicate email all look the same to the caller.
+    const adminCode = getAdminInviteCode();
+    const staffCode = getStaffInviteCode();
     const passwordHash = await hashPassword(password);
-    if (!expected || !inviteCodeMatches(inviteCode, expected)) {
+    // Both comparisons always run so timing doesn't reveal which code was close.
+    const isAdminCode = adminCode !== null && inviteCodeMatches(inviteCode, adminCode);
+    const isStaffCode = staffCode !== null && inviteCodeMatches(inviteCode, staffCode);
+    if (!isAdminCode && !isStaffCode) {
       throw new HttpError("FORBIDDEN", REJECTED);
     }
-
     if (await emailExists(email)) throw new HttpError("FORBIDDEN", REJECTED);
 
     try {
-      const user = await createAdminUser(email, passwordHash);
+      const user = isAdminCode
+        ? await createAdminUser(email, passwordHash)
+        : await createUser(email, passwordHash, "STAFF");
       return jsonOk({ user }, 201);
     } catch (error) {
       if (isDuplicateEntryError(error)) throw new HttpError("FORBIDDEN", REJECTED);

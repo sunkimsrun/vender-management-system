@@ -5,7 +5,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import { getDatabasePool } from "@/lib/db";
 
-export type Role = "USER" | "ADMIN";
+export type Role = "USER" | "STAFF" | "ADMIN";
 
 export type PublicUser = {
   id: string;
@@ -64,21 +64,22 @@ export async function findCredentialsByEmail(
   return { id: row.id, role: row.role, passwordHash: row.password_hash };
 }
 
-// The role is fixed to USER here on purpose; public registration can never choose it.
+// Public registration always uses USER; admins may pick USER or STAFF for accounts they create.
 export async function createUser(
   email: string,
   passwordHash: string,
+  role: "USER" | "STAFF" = "USER",
 ): Promise<PublicUser> {
   const id = randomUUID();
   await getDatabasePool().execute(
-    "INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, 'USER')",
-    [id, email, passwordHash],
+    "INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)",
+    [id, email, passwordHash, role],
   );
 
-  return { id, email, role: "USER", createdAt: new Date().toISOString() };
+  return { id, email, role, createdAt: new Date().toISOString() };
 }
 
-// Only reachable from the invite-code-gated admin registration route.
+// Only reachable from the invite-code-gated registration route (ADMIN_INVITE_CODE -> ADMIN, STAFF_INVITE_CODE -> STAFF).
 export async function createAdminUser(
   email: string,
   passwordHash: string,
@@ -92,20 +93,21 @@ export async function createAdminUser(
   return { id, email, role: "ADMIN", createdAt: new Date().toISOString() };
 }
 
-// Admin management is limited to accounts with the USER role, so admins cannot be edited or deleted here.
+// Admin management covers USER and STAFF accounts only, so admins cannot be edited, demoted or deleted here.
+// The role can only ever be set to USER or STAFF; ADMIN can't be granted through this API.
 export async function updateManagedUser(
   id: string,
-  input: { email?: string; passwordHash?: string },
+  input: { email?: string; passwordHash?: string; role?: "USER" | "STAFF" },
 ): Promise<PublicUser | null> {
   const [result] = await getDatabasePool().execute<ResultSetHeader>(
-    `UPDATE users SET email = COALESCE(?, email), password_hash = COALESCE(?, password_hash)
-     WHERE id = ? AND role = 'USER'`,
-    [input.email ?? null, input.passwordHash ?? null, id],
+    `UPDATE users SET email = COALESCE(?, email), password_hash = COALESCE(?, password_hash), role = COALESCE(?, role)
+     WHERE id = ? AND role IN ('USER', 'STAFF')`,
+    [input.email ?? null, input.passwordHash ?? null, input.role ?? null, id],
   );
   if (result.affectedRows === 0) return null;
 
-  if (input.passwordHash) {
-    // A password change signs the user out everywhere.
+  if (input.passwordHash || input.role) {
+    // Password and role changes sign the user out everywhere so the new access applies immediately.
     await getDatabasePool().execute("DELETE FROM refresh_tokens WHERE user_id = ?", [id]);
   }
   return findPublicUserById(id);
@@ -113,7 +115,7 @@ export async function updateManagedUser(
 
 export async function deleteManagedUser(id: string): Promise<boolean> {
   const [result] = await getDatabasePool().execute<ResultSetHeader>(
-    "DELETE FROM users WHERE id = ? AND role = 'USER'",
+    "DELETE FROM users WHERE id = ? AND role IN ('USER', 'STAFF')",
     [id],
   );
   return result.affectedRows > 0;

@@ -9,7 +9,7 @@ type ManagedUser = { id: string; email: string; role: string; createdAt: string 
 type Editing = { mode: "create" } | { mode: "edit"; user: ManagedUser };
 
 const inputClass =
-  "mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900/20 dark:border-zinc-700 dark:bg-zinc-950";
+  "mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-950";
 
 async function send(path: string, method: string, body?: unknown) {
   const response = await apiFetch(path, {
@@ -60,7 +60,7 @@ export function AdminUsers() {
     await load();
   }
 
-  const managed = users?.filter((u) => u.role === "USER") ?? [];
+  const managed = users?.filter((u) => u.role === "USER" || u.role === "STAFF") ?? [];
 
   return (
     <section className="space-y-6">
@@ -71,7 +71,7 @@ export function AdminUsers() {
             setNotice(null);
             setEditing({ mode: "create" });
           }}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:text-white"
         >
           Add user
         </button>
@@ -101,6 +101,7 @@ export function AdminUsers() {
             <thead className="border-b border-zinc-200 text-xs text-zinc-500 dark:border-zinc-800">
               <tr>
                 <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">Created</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
@@ -109,6 +110,7 @@ export function AdminUsers() {
               {managed.map((user) => (
                 <tr key={user.id} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                   <td className="break-all px-4 py-3">{user.email}</td>
+                  <td className="px-4 py-3">{user.role}</td>
                   <td className="whitespace-nowrap px-4 py-3">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-right">
                     <button
@@ -142,6 +144,7 @@ function UserForm({ editing, onCancel, onSaved }: {
   const isEdit = editing.mode === "edit";
   const [email, setEmail] = useState(isEdit ? editing.user.email : "");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState(isEdit ? editing.user.role : "USER");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -155,15 +158,16 @@ function UserForm({ editing, onCancel, onSaved }: {
     const body: Record<string, string> = {};
     if (!isEdit || email.trim().toLowerCase() !== editing.user.email) body.email = email;
     if (password) body.password = password;
+    if (isEdit && role !== editing.user.role) body.role = role;
     if (isEdit && Object.keys(body).length === 0) {
-      setFormError("Change the email or enter a new password.");
+      setFormError("Change the email, role or enter a new password.");
       return;
     }
 
     setSaving(true);
     const result = isEdit
       ? await send(`/api/admin/users/${editing.user.id}`, "PATCH", body)
-      : await send("/api/admin/users", "POST", { email, password });
+      : await send("/api/admin/users", "POST", { email, password, role });
     setSaving(false);
 
     if (!result.ok) {
@@ -202,12 +206,19 @@ function UserForm({ editing, onCancel, onSaved }: {
           />
           {errors.password ? <p className="mt-1 text-xs text-red-600">{errors.password}</p> : <p className="mt-1 text-xs text-zinc-500">At least 9 characters.</p>}
         </div>
+        <div>
+          <label htmlFor="user-role" className="block text-sm font-medium">Role</label>
+          <select id="user-role" value={role} onChange={(e) => setRole(e.target.value)} className={inputClass}>
+            <option value="USER">USER (customer)</option>
+            <option value="STAFF">STAFF (operational)</option>
+          </select>
+        </div>
       </div>
       <div className="flex gap-3">
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900"
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-indigo-500 dark:text-white"
         >
           {saving ? "Saving…" : "Save"}
         </button>
