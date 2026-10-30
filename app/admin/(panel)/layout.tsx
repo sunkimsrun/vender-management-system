@@ -9,7 +9,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title="Admin"
       loginPath="/admin/login"
       requiredRole="ADMIN"
-      links={[{ href: "/admin", label: "Users" }]}
+      links={[
+        { href: "/", label: "Home" },
+        { href: "/contact", label: "Contact" },
+      ]}
+      sidebarLinks={[
+        { href: "/admin/overview", label: "Overview" },
+        { href: "/admin", label: "Manage users" },
+        { href: "/admin/products", label: "Products" },
+        { href: "/admin/categories", label: "Categories" },
+        { href: "/admin/suppliers", label: "Suppliers" },
+        { href: "/admin/stock", label: "Stock" },
+      ]}
     >
       {children}
     </AppShell>

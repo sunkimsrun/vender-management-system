@@ -3,15 +3,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AdminSidebar } from "@/components/admin-sidebar";
 import { Alert } from "@/components/ui";
 import { SessionProvider, useSession } from "@/lib/client/session";
 import type { Role } from "@/lib/client/api";
 
-export function AppShell({ title, loginPath, requiredRole, links, children }: {
+export function AppShell({ title, loginPath, requiredRole, requiredRoles, links, sidebarLinks, children }: {
   title: string;
   loginPath: string;
   requiredRole?: Role;
+  requiredRoles?: Role[];
   links: { href: string; label: string }[];
+  sidebarLinks?: { href: string; label: string }[];
   children: ReactNode;
 }) {
   const { state, retry, signOut } = useSession(loginPath);
@@ -38,7 +41,7 @@ export function AppShell({ title, loginPath, requiredRole, links, children }: {
   const { user } = state;
 
   // Convenience only: every admin API call is authorized again on the server.
-  if (requiredRole && user.role !== requiredRole) {
+  if ((requiredRole && user.role !== requiredRole) || (requiredRoles && !requiredRoles.includes(user.role))) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center">
         <h1 className="text-xl font-semibold">Access denied</h1>
@@ -54,10 +57,10 @@ export function AppShell({ title, loginPath, requiredRole, links, children }: {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <header className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-4">
-            <span className="font-semibold">{title}</span>
+            <span className="rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 px-2.5 py-1 text-sm font-semibold text-white shadow-sm">{title}</span>
             <nav className="flex gap-3 text-sm text-zinc-600 dark:text-zinc-400">
               {links.map((link) => (
                 <Link key={link.href} href={link.href} className="hover:underline">
@@ -77,9 +80,12 @@ export function AppShell({ title, loginPath, requiredRole, links, children }: {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        <SessionProvider value={user}>{children}</SessionProvider>
-      </main>
+      <div className={sidebarLinks ? "mx-auto flex w-full max-w-6xl flex-1 flex-col md:flex-row" : "flex flex-1 flex-col"}>
+        {sidebarLinks ? <AdminSidebar links={sidebarLinks} /> : null}
+        <main className="w-full flex-1 px-4 py-8 md:px-8">
+          <SessionProvider value={user}>{children}</SessionProvider>
+        </main>
+      </div>
     </div>
   );
 }

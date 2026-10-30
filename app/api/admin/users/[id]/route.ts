@@ -10,7 +10,7 @@ import { adminUpdateUserSchema, userIdSchema } from "@/lib/validation/admin-user
 
 type Context = { params: Promise<{ id: string }> };
 
-// Only USER accounts are manageable; admins and unknown IDs both look like "not found".
+// Only USER and STAFF accounts are manageable; admins and unknown IDs both look like "not found".
 const NOT_FOUND = () => new HttpError("NOT_FOUND", "User not found");
 
 async function resolveId(context: Context): Promise<string> {
@@ -34,7 +34,7 @@ export async function PATCH(request: Request, context: Context) {
 
     const passwordHash = parsed.data.password ? await hashPassword(parsed.data.password) : undefined;
     try {
-      const user = await updateManagedUser(id, { email: parsed.data.email, passwordHash });
+      const user = await updateManagedUser(id, { email: parsed.data.email, passwordHash, role: parsed.data.role });
       if (!user) throw NOT_FOUND();
       return jsonOk({ user });
     } catch (error) {

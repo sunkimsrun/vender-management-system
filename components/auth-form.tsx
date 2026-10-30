@@ -34,17 +34,17 @@ const COPY: Record<AuthMode, {
     altHref: "/login",
   },
   "admin-login": {
-    title: "Admin sign in",
-    subtitle: "Administrator access only.",
-    submit: "Sign in as admin",
+    title: "Admin / staff sign in",
+    subtitle: "For administrators and staff.",
+    submit: "Sign in",
     altText: "Have an invite code?",
-    altLabel: "Register as admin",
+    altLabel: "Register with invite code",
     altHref: "/admin/register",
   },
   "admin-register": {
-    title: "Admin registration",
-    subtitle: "An invite code from the system owner is required.",
-    submit: "Create admin account",
+    title: "Admin / staff registration",
+    subtitle: "An admin or staff invite code from the system owner is required.",
+    submit: "Create account",
     altText: "Already an admin?",
     altLabel: "Sign in",
     altHref: "/admin/login",
@@ -122,6 +122,10 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         // The role is checked by the server on every admin call; this only picks the right page.
         const me = await apiFetch("/api/me");
         const role = me.ok ? (await me.json()).user?.role : null;
+        if (role === "STAFF") {
+          router.replace("/dashboard");
+          return;
+        }
         if (role !== "ADMIN") {
           await logout();
           setFormError("Invalid email or password");
@@ -201,7 +205,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
       <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
         {copy.altText}{" "}
-        <Link href={copy.altHref} className="font-medium text-zinc-900 underline dark:text-zinc-100">
+        <Link href={copy.altHref} className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
           {copy.altLabel}
         </Link>
       </p>

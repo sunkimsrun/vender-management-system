@@ -42,7 +42,7 @@ export async function verifyAccessToken(
 
     if (
       typeof payload.sub !== "string" ||
-      (payload.role !== "USER" && payload.role !== "ADMIN")
+      (payload.role !== "USER" && payload.role !== "STAFF" && payload.role !== "ADMIN")
     ) {
       return null;
     }

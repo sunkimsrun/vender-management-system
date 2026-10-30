@@ -1,4 +1,4 @@
-USE auth_system;
+USE vendor_management_system;
 
 CREATE TABLE IF NOT EXISTS notes (
   id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -14,3 +14,5 @@ CREATE TABLE IF NOT EXISTS notes (
     FOREIGN KEY (user_id) REFERENCES users (id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON vendor_management_system.notes TO 'vendor_app'@'localhost';

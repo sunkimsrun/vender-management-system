@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Auth System", template: "%s | Auth System" },
+  title: { default: "Vender Management System", template: "%s | Vender Management System" },
   description: "Secure authentication system",
 };
 

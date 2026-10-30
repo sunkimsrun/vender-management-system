@@ -1,21 +1,17 @@
-CREATE DATABASE IF NOT EXISTS auth_system
+CREATE DATABASE IF NOT EXISTS vendor_management_system
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_0900_ai_ci;
 
-CREATE USER IF NOT EXISTS 'auth_app'@'localhost'
+CREATE USER IF NOT EXISTS 'vendor_app'@'localhost'
   IDENTIFIED BY 'CHANGE_ME_BEFORE_RUNNING';
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-  ON auth_system.*
-  TO 'auth_app'@'localhost';
-
-USE auth_system;
+USE vendor_management_system;
 
 CREATE TABLE IF NOT EXISTS users (
   id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   email VARCHAR(254) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
+  role ENUM('USER', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'USER',
   created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
     ON UPDATE CURRENT_TIMESTAMP(3),
@@ -45,3 +41,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     FOREIGN KEY (replaced_by_token_id) REFERENCES refresh_tokens (id)
     ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- Grants are per table on purpose: a database-wide grant would also give the app UPDATE/DELETE on append-only tables.
+GRANT SELECT, INSERT, UPDATE, DELETE ON vendor_management_system.users TO 'vendor_app'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON vendor_management_system.refresh_tokens TO 'vendor_app'@'localhost';

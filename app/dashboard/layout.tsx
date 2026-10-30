@@ -8,8 +8,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <AppShell
       title="Dashboard"
       loginPath="/login"
-      requiredRole="USER"
-      links={[{ href: "/dashboard", label: "Dashboard" }]}
+      requiredRoles={["USER", "STAFF"]}
+      links={[
+        { href: "/", label: "Home" },
+        { href: "/contact", label: "Contact" },
+      ]}
+      sidebarLinks={[
+        { href: "/dashboard", label: "User account" },
+        { href: "/dashboard/cart", label: "My cart" },
+        { href: "/dashboard/orders", label: "My orders" },
+      ]}
     >
       {children}
     </AppShell>

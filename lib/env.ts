@@ -5,8 +5,8 @@ import { z } from "zod";
 const databaseEnvSchema = z.object({
   DB_HOST: z.string().min(1).default("localhost"),
   DB_PORT: z.coerce.number().int().min(1).max(65535).default(3306),
-  DB_NAME: z.string().min(1).default("auth_system"),
-  DB_USER: z.string().min(1).default("auth_app"),
+  DB_NAME: z.string().min(1).default("vendor_management_system"),
+  DB_USER: z.string().min(1).default("vendor_app"),
   DB_PASSWORD: z.string().min(1),
 });
 
@@ -43,6 +43,12 @@ export function getAuthConfig() {
 // Admin sign-up is disabled unless an invite code of at least 20 characters is configured.
 export function getAdminInviteCode(): string | null {
   const code = process.env.ADMIN_INVITE_CODE;
+  return code && code.length >= 20 ? code : null;
+}
+
+// Staff sign-up works the same way, with its own code of at least 20 characters.
+export function getStaffInviteCode(): string | null {
+  const code = process.env.STAFF_INVITE_CODE;
   return code && code.length >= 20 ? code : null;
 }
 
